@@ -8,10 +8,14 @@ namespace Keycloak.Net.Common.Extensions
 {
     public static class FlurlRequestExtensions
     {
-        private static async Task<string> GetAccessTokenAsync(string url, string realm, string userName, string password)
+        private static async Task<string> GetAccessTokenAsync(string url, string realm, string userName,
+            string password, bool includeAuthSegment)
         {
+            if (includeAuthSegment)
+                url = url.AppendPathSegment("/auth");
+
             var result = await url
-                .AppendPathSegment($"/auth/realms/{realm}/protocol/openid-connect/token")
+                .AppendPathSegment($"/realms/{realm}/protocol/openid-connect/token")
                 .WithHeader("Accept", "application/json")
                 .PostUrlEncodedAsync(new List<KeyValuePair<string, string>>
                 {
@@ -28,12 +32,18 @@ namespace Keycloak.Net.Common.Extensions
             return accessToken;
         }
 
-        private static string GetAccessToken(string url, string realm, string userName, string password) => GetAccessTokenAsync(url, realm, userName, password).GetAwaiter().GetResult();
+        private static string GetAccessToken(string url, string realm, string userName, string password,
+            bool includeAuthSegment) =>
+            GetAccessTokenAsync(url, realm, userName, password, includeAuthSegment).GetAwaiter().GetResult();
 
-        private static async Task<string> GetAccessTokenAsync(string url, string realm, string clientSecret)
+        private static async Task<string> GetAccessTokenAsync(string url, string realm, string clientSecret,
+            bool includeAuthSegment)
         {
+            if (includeAuthSegment)
+                url = url.AppendPathSegment("/auth");
+
             var result = await url
-                .AppendPathSegment($"/auth/realms/{realm}/protocol/openid-connect/token")
+                .AppendPathSegment($"/realms/{realm}/protocol/openid-connect/token")
                 .WithHeader("Content-Type", "application/x-www-form-urlencoded")
                 .PostUrlEncodedAsync(new List<KeyValuePair<string, string>>
                 {
@@ -49,9 +59,11 @@ namespace Keycloak.Net.Common.Extensions
             return accessToken;
         }
 
-        private static string GetAccessToken(string url, string realm, string clientSecret) => GetAccessTokenAsync(url, realm, clientSecret).GetAwaiter().GetResult();
+        private static string GetAccessToken(string url, string realm, string clientSecret, bool includeAuthSegment) =>
+            GetAccessTokenAsync(url, realm, clientSecret, includeAuthSegment).GetAwaiter().GetResult();
 
-        public static IFlurlRequest WithAuthentication(this IFlurlRequest request, Func<string> getToken, string url, string realm, string userName, string password, string clientSecret)
+        public static IFlurlRequest WithAuthentication(this IFlurlRequest request, Func<string> getToken, string url,
+            string realm, string userName, string password, string clientSecret, bool includeAuthSegment)
         {
             string token = null;
 
@@ -61,31 +73,32 @@ namespace Keycloak.Net.Common.Extensions
             }
             else if (clientSecret != null)
             {
-                token = GetAccessToken(url, realm, clientSecret);
+                token = GetAccessToken(url, realm, clientSecret, includeAuthSegment);
             }
             else
             {
-                token = GetAccessToken(url, realm, userName, password);
+                token = GetAccessToken(url, realm, userName, password, includeAuthSegment);
             }
 
             return request.WithOAuthBearerToken(token);
         }
 
-        public static IFlurlRequest WithForwardedHttpHeaders(this IFlurlRequest request, ForwardedHttpHeaders forwardedHeaders)
+        public static IFlurlRequest WithForwardedHttpHeaders(this IFlurlRequest request,
+            ForwardedHttpHeaders forwardedHeaders)
         {
             if (!string.IsNullOrEmpty(forwardedHeaders?.forwardedFor))
             {
-	            request = request.WithHeader("X-Forwarded-For", forwardedHeaders.forwardedFor);
+                request = request.WithHeader("X-Forwarded-For", forwardedHeaders.forwardedFor);
             }
 
             if (!string.IsNullOrEmpty(forwardedHeaders?.forwardedProto))
             {
-	            request = request.WithHeader("X-Forwarded-Proto", forwardedHeaders.forwardedProto);
+                request = request.WithHeader("X-Forwarded-Proto", forwardedHeaders.forwardedProto);
             }
 
             if (!string.IsNullOrEmpty(forwardedHeaders?.forwardedHost))
             {
-	            request = request.WithHeader("X-Forwarded-Host", forwardedHeaders.forwardedHost);
+                request = request.WithHeader("X-Forwarded-Host", forwardedHeaders.forwardedHost);
             }
 
             return request;
