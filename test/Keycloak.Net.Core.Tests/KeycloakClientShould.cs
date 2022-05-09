@@ -18,7 +18,11 @@ namespace Keycloak.Net.Tests
             string userName = configuration["userName"];
             string password = configuration["password"];
 
-            _client = new KeycloakClient(url, userName, password);
+
+            if (!bool.TryParse(configuration["includeAuthSegment"], out var includeAuthSegment))
+                includeAuthSegment = true;
+
+            _client = new KeycloakClient(url, userName, password, includeAuthSegment);
         }
     }
 }
